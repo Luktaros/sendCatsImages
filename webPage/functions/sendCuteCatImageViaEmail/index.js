@@ -21,7 +21,7 @@ async function sendCuteCatViaEmail(req, res) {
   let countOfReads = 0;
   let countOfWrites = 0;
 
-  // Define email format and configuration
+  // Define email account
   const transporter = nodemailer.createTransport({
     service:'xxxxx', //TODO
     auth:{
@@ -30,6 +30,7 @@ async function sendCuteCatViaEmail(req, res) {
     }
   })
 
+  // Define email template
   const mailOptions = {
     from:     'xxxxx', //TODO
     to:       'xxxxx', //TODO
@@ -70,7 +71,7 @@ async function sendCuteCatViaEmail(req, res) {
     recipientEmail = req.body.recipientEmail
   }
 
-  // Send mail and process results
+  // Send mail and save outcome
   let deliveryReport = '';
   let mailSendSuccessfully = false;
 
@@ -105,12 +106,13 @@ async function sendCuteCatViaEmail(req, res) {
   mailRecord.timeOfOperation = dateNow;
   mailRecord.deliveryReport = deliveryReport;
 
-  // Search for users, register them if necessary and save outcome
+  // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
   const queryUserCollectionRef = await usersCollectionRef.where('senderEmail', '==', senderEmail).get();
   countOfReads++;
 
   if (queryUserCollectionRef.empty){
+    // If no user profile is found, create a new one and save the record.
     const newUser = {};
     let docIdOfNewUser = '';
 
@@ -136,11 +138,13 @@ async function sendCuteCatViaEmail(req, res) {
     });
     countOfWrites++;
 
-    console.log(`User: ${docIdOfNewUser} has been succesfully created`);
+    // Report function execution result and end it
+    console.log(`User: ${docIdOfNewUser} has been succesfully created and mail record has been saved`);
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
     res.send();
 
   } else {
+    // If user profile is found, update it with lastest values and register email record
     const userDoc = queryUserCollectionRef.docs[0];
     const userDocData = userDoc.data();
     const userId = userDoc.id;
@@ -166,6 +170,7 @@ async function sendCuteCatViaEmail(req, res) {
     await firestore.collection('users').doc(userId).update(updateForUser);
     countOfWrites++;
 
+    // Report function execution result and end it
     console.log(`User: ${userId} has been succesfully updated`);
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
     res.send();
