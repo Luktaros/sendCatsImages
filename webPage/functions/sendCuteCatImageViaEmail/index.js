@@ -5,39 +5,30 @@ import nodemailer from 'nodemailer';
 
 // Initialize firestore client
 const firestore = new Firestore({
-  projectId: 'xxxxx' //TODO
+  projectId: 'xxxxx'
 });
 
 // Initialize http function entry point
-functions.http('sendCuteCatViaEmail', sendCuteCatViaEmail);
+functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 
 /**
  * This function sends an email with cute cats pictures
  * @param {object} req
  * @param {object} res
  */
-async function sendCuteCatViaEmail(req, res) {
+async function sendCuteCatsViaEmail(req, res) {
   // Define initial values
   let countOfReads = 0;
   let countOfWrites = 0;
 
   // Define email account
   const transporter = nodemailer.createTransport({
-    service:'xxxxx', //TODO
+    service:'xxxxx',
     auth:{
-      user: 'xxxxxx', //TODO
-      pass: 'xxxxxx' //TODO
+      user: 'xxxxxx',
+      pass: 'xxxxxx'
     }
   })
-
-  // Define email template
-  const mailOptions = {
-    from:     'xxxxx', //TODO
-    to:       'xxxxx', //TODO
-    subject:  'xxxxx', //TODO
-    text:     'xxxxx', //TODO
-    html:     'xxxxx' //TODO
-  }
 
   // Check input values
   let senderFirstName = '';
@@ -69,6 +60,46 @@ async function sendCuteCatViaEmail(req, res) {
 
   if (req.body.recipientEmail){
     recipientEmail = req.body.recipientEmail
+  }
+
+  // Define email html body
+  let htmlBody =
+  `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Simple Email</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; background-color: #f0f0f0; text-align: center; padding: 20px;">
+      <table width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+              <td style="background-color: #0073e6; padding: 20px;">
+                  <h1 style="color: #fff;">Hello, User!</h1>
+              </td>
+          </tr>
+          <tr>
+              <td style="padding: 20px;">
+                  <p>This is a simple HTML email. You can add your content here.</p>
+                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla ac justo nec leo euismod cursus. Cras non libero non odio condimentum auctor.</p>
+              </td>
+          </tr>
+          <tr>
+              <td style="background-color: #0073e6; color: #fff; padding: 10px;">
+                  <p>&copy; 2023 Your Company Name</p>
+              </td>
+          </tr>
+      </table>
+  </body>
+  </html>`;
+
+  // Define email options
+  const mailOptions = {
+    from:     senderEmail,
+    to:       recipientEmail,
+    subject:  'Cut cats images for you!',
+    text:     'Meow, some test text',
+    html:     htmlBody
   }
 
   // Send mail and save outcome
