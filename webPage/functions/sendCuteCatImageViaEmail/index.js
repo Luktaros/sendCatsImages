@@ -109,22 +109,30 @@ async function sendCuteCatsViaEmail(req, res) {
   let deliveryReport = '';
   let mailSendSuccessfully = false;
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      deliveryReport = error;
-      mailSendSuccessfully = false;
+  async function sendEmail() {
+    new Promise((resolve, reject) =>{
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(info.response);
+        }
+      });
+    })
+  }
 
-      console.error('Error sending email with cats:', error);
-    } else {
-      mailSendSuccessfully = true;
+  try {
+    deliveryReport = await sendEmail();
+    mailSendSuccessfully = true;
+    console.log('Email with cats sent:', deliveryReport);
 
-      if (info.response){
-        deliveryReport = info.response;
-      }
+  } catch (error){
+    deliveryReport = error;
+    mailSendSuccessfully = false;
+    console.error('Error sending email with cats:', error);
+  }
 
-      console.log('Email with cats sent:', deliveryReport);
-    }
-  });
+
 
   // Generate email record
   const emailRecord = {};
