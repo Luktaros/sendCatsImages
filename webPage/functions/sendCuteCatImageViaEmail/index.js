@@ -105,34 +105,19 @@ async function sendCuteCatsViaEmail(req, res) {
     html:     htmlBody
   }
 
-  // Send mail and save outcome
+  // Send email and save outcome
   let deliveryReport = '';
   let mailSendSuccessfully = false;
 
-  async function sendEmail() {
-    new Promise((resolve, reject) =>{
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(info.response);
-        }
-      });
-    })
-  }
-
-  try {
-    deliveryReport = await sendEmail();
+  await transporter.sendMail(mailOptions).then(result =>{
+    deliveryReport = result;
     mailSendSuccessfully = true;
-    console.log('Email with cats sent:', deliveryReport);
-
-  } catch (error){
+    console.log('Email with cats sent successfully:', deliveryReport);
+  }).catch(error => {
     deliveryReport = error;
     mailSendSuccessfully = false;
     console.error('Error sending email with cats:', error);
-  }
-
-
+  });
 
   // Generate email record
   const emailRecord = {};
@@ -150,7 +135,7 @@ async function sendCuteCatsViaEmail(req, res) {
 
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
-  const queryUserCollectionRef = await usersCollectionRef.where('senderEmail', '==', senderEmail).get();
+  const queryUserCollectionRef = await usersCollectionRef.where('email', '==', senderEmail).get();
   countOfReads++;
 
   if (queryUserCollectionRef.empty){
