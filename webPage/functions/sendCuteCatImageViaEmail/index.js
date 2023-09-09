@@ -1,18 +1,18 @@
 import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
 import nodemailer from 'nodemailer';
-import { getProjectId } from 'gcp-metadata';
+
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 
-// Get project ID
-const projectId = await getProjectId();
-
 // Initialize firestore client
-const firestore = new Firestore({
-  projectId: projectId
-});
+const firestore = new Firestore();
+
+// Initialize global variables
+const SECRET_EMAIL_SERVICE = process.env.SECRET_EMAIL_SERVICE;
+const SECRET_EMAIL_USER = process.env.SECRET_EMAIL_USER;
+const SECRET_EMAIL_PASS = process.env.SECRET_EMAIL_PASS;
 
 /**
  * This function sends an email with cute cats pictures
@@ -29,7 +29,7 @@ async function sendCuteCatsViaEmail(req, res) {
     service: SECRET_EMAIL_SERVICE,
     auth:{
       user: SECRET_EMAIL_USER,
-      pass: SECRETE_EMAIL_PASS
+      pass: SECRET_EMAIL_PASS
     }
   })
 
@@ -127,18 +127,18 @@ async function sendCuteCatsViaEmail(req, res) {
   });
 
   // Generate email record
-  const mailRecord = {};
+  const emailRecord = {};
   let dateNow = new Date();
 
-  mailRecord.mailSendSuccessfully = mailSendSuccessfully;
-  mailRecord.senderFirstName = senderFirstName;
-  mailRecord.senderLastName = senderLastName;
-  mailRecord.senderEmail = senderEmail;
-  mailRecord.recipientFirstName = recipientFirstName;
-  mailRecord.recipientLastName = recipientLastName;
-  mailRecord.recipientEmail = recipientEmail;
-  mailRecord.timeOfOperation = dateNow;
-  mailRecord.deliveryReport = deliveryReport;
+  emailRecord.mailSendSuccessfully = mailSendSuccessfully;
+  emailRecord.senderFirstName = senderFirstName;
+  emailRecord.senderLastName = senderLastName;
+  emailRecord.senderEmail = senderEmail;
+  emailRecord.recipientFirstName = recipientFirstName;
+  emailRecord.recipientLastName = recipientLastName;
+  emailRecord.recipientEmail = recipientEmail;
+  emailRecord.timeOfOperation = dateNow;
+  emailRecord.deliveryReport = deliveryReport;
 
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
@@ -164,8 +164,7 @@ async function sendCuteCatsViaEmail(req, res) {
       newUser.lastUsedLastName = senderLastName;
     }
 
-    listOfEmailSents.push(mailRecord);
-    newUser.listOfEmailSents = listOfEmailSents;
+    newUser.listOfEmailSents.push(emailRecord);
 
     await firestore.collection('users').add(newUser).then(docId => {
       docIdOfNewUser = docId.id;
@@ -173,7 +172,7 @@ async function sendCuteCatsViaEmail(req, res) {
     countOfWrites++;
 
     // Report function execution result and end it
-    console.log(`User: ${docIdOfNewUser} has been succesfully created and mail record has been saved`);
+    console.log(`The user with ID ${docIdOfNewUser} has been successfully created, and the email record has been saved.`);
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
     res.send();
 
@@ -188,7 +187,7 @@ async function sendCuteCatsViaEmail(req, res) {
     if (userDocData.listOfEmailSents){
       listOfEmailSents = userDocData.listOfEmailSents;
 
-      listOfEmailSents.push(mailRecord);
+      listOfEmailSents.push(emailRecord);
 
       updateForUser.listOfEmailSents = listOfEmailSents;
     }
