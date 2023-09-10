@@ -1,7 +1,7 @@
 import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
 import nodemailer from 'nodemailer';
-
+import handlebars from 'handlebars';
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -40,6 +40,8 @@ async function sendCuteCatsViaEmail(req, res) {
   let recipientFirstName = '';
   let recipientLastName = '';
   let recipientEmail = '';
+  let senderName = '';
+  let recipientName = '';
 
   if (req.body.senderFirstName){
     senderFirstName = req.body.senderFirstName
@@ -65,24 +67,74 @@ async function sendCuteCatsViaEmail(req, res) {
     recipientEmail = req.body.recipientEmail
   }
 
-  // Define email html body
-  let htmlBody =
+  // Define sender name for email template
+  if (senderFirstName || senderLastName){
+    let senderFirstNameAdded = false;
+
+    if (senderFirstName){
+      senderFirstNameAdded = true;
+      senderName = senderFirstName;
+    }
+
+    if (senderLastName){
+      if (senderFirstNameAdded){
+        senderName += ' ';
+      }
+
+      senderName += senderLastName;
+    }
+  }
+
+  // Define recipient name for email template
+  if (recipientFirstName || recipientLastName){
+    let recipientFirstNameAdded = false;
+
+    if (recipientFirstName){
+      recipientFirstNameAdded = true;
+      recipientName += recipientFirstName;
+    }
+
+    if (recipientLastName){
+      if (recipientFirstNameAdded){
+        recipientName +=' ';
+      }
+
+      recipientName += recipientLastName;
+    }
+  }
+
+  // Define email template
+  let emailTemplate =
     `<!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>A cute cat image for you</title>
+        {{#if recipientName}}
+        <title>An image of a cute cat for you {{recipientName}}!</title>
+        {{else}}
+        <title>An image of a cute cat for you!</title>
+        {{/if}}
     </head>
     <body style="font-family: Arial, sans-serif; background-color: #f0f0f0; text-align: center; padding: 20px;">
         <table width="100%" cellspacing="0" cellpadding="0" border="0">
             <tr>
                 <td style="background-color: #0073e6; padding: 20px;">
-                    <h1 style="color: #fff;">Hello, User!</h1>
+                    {{#if recipientName}}
+                    <h1 style="color: #fff;">¡Hello, {{recipientName}}!</h1>
+                    {{else}}
+                    <h1 style="color: #fff;">¡Hello!</h1>
+                    {{/if}}
                 </td>
             </tr>
             <tr>
                 <td style="padding: 20px;">
+                    {{#if senderName}}
+                    <p>This email was sent to you cortesy of {{senderName}}<p>
+                    <p>¡Answer back to him! (¡We dont care about your answer!)<p>
+                    {{else}}
+                    <p>¡This email was sent to you by someone who wish you the best!<p>
+                    {{/if}}
                     <p>This is a simple HTML email, in a future it will have cute cats.</p>
                     <p>But not rigth now...</p>
                 </td>
@@ -96,13 +148,34 @@ async function sendCuteCatsViaEmail(req, res) {
     </body>
     </html>`;
 
+  // Compile, add data and render email the template.
+  let emailData = {};
+  let compiledEmailTemplate;
+  let emailContent;
+
+  compiledEmailTemplate = handlebars.compile(emailTemplate);
+
+  emailData.senderName = '';
+  emailData.recipientName = '';
+
+  if (senderName){
+    emailData.senderName = senderName;
+  }
+
+  if (recipientName){
+    emailData.recipientName = recipientName;
+  }
+
+  emailContent = compiledEmailTemplate(emailData);
+
+
   // Define email options
   const mailOptions = {
     from:     SECRET_EMAIL_USER,
     to:       recipientEmail,
     subject:  'Cut cats images for you!',
     text:     'Meow, some test text, how did you find this?',
-    html:     htmlBody
+    html:     emailContent
   }
 
   // Send email and save outcome
@@ -132,6 +205,7 @@ async function sendCuteCatsViaEmail(req, res) {
   emailRecord.recipientEmail = recipientEmail;
   emailRecord.timeOfOperation = dateNow;
   emailRecord.deliveryReport = deliveryReport;
+  emailRecord.emailCopy = mailOptions;
 
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
