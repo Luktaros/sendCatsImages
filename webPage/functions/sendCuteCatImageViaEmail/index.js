@@ -135,7 +135,8 @@ async function sendCuteCatsViaEmail(req, res) {
                     {{else}}
                     <p>¡This email was sent to you by someone who wish you the best!<p>
                     {{/if}}
-                    <p>This is a simple HTML email, in a future it will have cute cats.</p>
+                    <p>Here is your cute cat!.</p>
+                    <img src="image.jpg" alt="A cute cat!" width="300" height="200">
                     <p>But not rigth now...</p>
                 </td>
             </tr>
