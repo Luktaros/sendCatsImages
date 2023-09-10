@@ -72,7 +72,7 @@ async function sendCuteCatsViaEmail(req, res) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Simple Email</title>
+        <title>A cute cat image for you</title>
     </head>
     <body style="font-family: Arial, sans-serif; background-color: #f0f0f0; text-align: center; padding: 20px;">
         <table width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -83,13 +83,13 @@ async function sendCuteCatsViaEmail(req, res) {
             </tr>
             <tr>
                 <td style="padding: 20px;">
-                    <p>This is a simple HTML email. You can add your content here.</p>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla ac justo nec leo euismod cursus. Cras non libero non odio condimentum auctor.</p>
+                    <p>This is a simple HTML email, in a future it will have cute cats.</p>
+                    <p>But not rigth now...</p>
                 </td>
             </tr>
             <tr>
                 <td style="background-color: #0073e6; color: #fff; padding: 10px;">
-                    <p>&copy; 2023 Your Company Name</p>
+                    <p>&copy; 2023 Lucio Perez</p>
                 </td>
             </tr>
         </table>
@@ -98,10 +98,10 @@ async function sendCuteCatsViaEmail(req, res) {
 
   // Define email options
   const mailOptions = {
-    from:     senderEmail,
+    from:     SECRET_EMAIL_USER,
     to:       recipientEmail,
     subject:  'Cut cats images for you!',
-    text:     'Meow, some test text',
+    text:     'Meow, some test text, how did you find this?',
     html:     htmlBody
   }
 
