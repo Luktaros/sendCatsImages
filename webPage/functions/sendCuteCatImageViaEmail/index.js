@@ -1,7 +1,9 @@
 import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
+import { Storage } from '@google-cloud/storage';
 import nodemailer from 'nodemailer';
 import handlebars from 'handlebars';
+
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -9,10 +11,14 @@ functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 // Initialize firestore client
 const firestore = new Firestore();
 
+// Initialize storage client
+const storage = new Storage();
+
 // Initialize global variables
 const SECRET_EMAIL_SERVICE = process.env.SECRET_EMAIL_SERVICE;
 const SECRET_EMAIL_USER = process.env.SECRET_EMAIL_USER;
 const SECRET_EMAIL_PASS = process.env.SECRET_EMAIL_PASS;
+const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
 
 /**
  * This function sends an email with cute cats pictures
@@ -20,6 +26,8 @@ const SECRET_EMAIL_PASS = process.env.SECRET_EMAIL_PASS;
  * @param {object} res
  */
 async function sendCuteCatsViaEmail(req, res) {
+  // TODO: Early return
+
   // Define initial counter values
   let countOfReads = 0;
   let countOfWrites = 0;
@@ -136,7 +144,7 @@ async function sendCuteCatsViaEmail(req, res) {
                     <p>¡This email was sent to you by someone who wish you the best!<p>
                     {{/if}}
                     <p>Here is your cute cat!.</p>
-                    <img src="image.jpg" alt="A cute cat!" width="300" height="200">
+                    <img src="data:image/jpeg;base64,{{catImage}}" alt="A cute cat!" width="300" height="200">
                     <p>But not rigth now...</p>
                 </td>
             </tr>
@@ -149,6 +157,32 @@ async function sendCuteCatsViaEmail(req, res) {
     </body>
     </html>`;
 
+  // Get cat image
+  let bucket = '';
+  let fileNameTarget = '';
+  let fileData = Buffer.alloc(0);
+  let catImage = '';
+
+  bucket = SECRET_BUCKET_NAME;
+  fileNameTarget = getRandomFileName();
+  console.log("fileNameTarget:");
+  console.log(fileNameTarget);
+
+  [fileData] = await storage.bucket(bucket).file(fileNameTarget).download();
+
+  console.log("fileData is Buffer:");
+  console.log(Buffer.isBuffer(fileData));
+  console.log(fileData);
+  console.log("fileData length:");
+  console.log(fileData.length);
+
+  catImage = fileData.toString('base64');
+  Buffer.toString(fileData);
+  console.log("catImage.length:");
+  console.log(catImage.length);
+  console.log("catImage:");
+  console.log(catImage);
+
   // Compile, add data and render email the template.
   let emailData = {};
   let compiledEmailTemplate;
@@ -156,6 +190,7 @@ async function sendCuteCatsViaEmail(req, res) {
 
   compiledEmailTemplate = handlebars.compile(emailTemplate);
 
+  emailData.catImage = '';
   emailData.senderName = '';
   emailData.recipientName = '';
 
@@ -165,6 +200,10 @@ async function sendCuteCatsViaEmail(req, res) {
 
   if (recipientName){
     emailData.recipientName = recipientName;
+  }
+
+  if (catImage){
+    emailData.catImage = catImage;
   }
 
   emailContent = compiledEmailTemplate(emailData);
@@ -206,7 +245,6 @@ async function sendCuteCatsViaEmail(req, res) {
   emailRecord.recipientEmail = recipientEmail;
   emailRecord.timeOfOperation = dateNow;
   emailRecord.deliveryReport = deliveryReport;
-  emailRecord.emailCopy = mailOptions;
 
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
@@ -276,4 +314,13 @@ async function sendCuteCatsViaEmail(req, res) {
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
     res.send();
   }
+}
+
+function getRandomFileName() {
+  const min = 0;
+  const max = 1369;
+  const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+  const paddedNumber = randomNumber.toString().padStart(5, '0');
+  const fileName = `${paddedNumber}.jpg`;
+  return fileName;
 }
