@@ -190,9 +190,9 @@ async function sendCuteCatsViaEmail(req, res) {
 
   compiledEmailTemplate = handlebars.compile(emailTemplate);
 
-  emailData.catImage = '';
   emailData.senderName = '';
   emailData.recipientName = '';
+  emailData.catImage = '';
 
   if (senderName){
     emailData.senderName = senderName;
