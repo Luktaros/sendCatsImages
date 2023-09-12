@@ -3,7 +3,7 @@ import functions from '@google-cloud/functions-framework';
 import { Storage } from '@google-cloud/storage';
 import nodemailer from 'nodemailer';
 import handlebars from 'handlebars';
-
+import joi from 'joi';
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -22,11 +22,25 @@ const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
 
 /**
  * This function sends an email with cute cats pictures
- * @param {object} req
- * @param {object} res
+ * @param {import('@google-cloud/functions-framework').Request} req
+ * @param {import('@google-cloud/functions-framework').Response} res
  */
 async function sendCuteCatsViaEmail(req, res) {
-  // TODO: Early return
+  // Validate input
+  const schema = joi.object({
+    senderFirstName: joi.string().allow('').alphanum().min(3).max(30),
+    senderLastName: joi.string().allow('').alphanum().min(3).max(30),
+    senderEmail: joi.string().email({ minDomainSegments: 2}).required(),
+    recipientFirstName: joi.string().allow('').alphanum().min(3).max(30),
+    recipientLastName: joi.string().allow('').alphanum().min(3).max(30),
+    recipientEmail: joi.string().email({ minDomainSegments: 2}).required(),
+  })
+
+  const { validationError } = schema.validate(req.body, { stripUnknown: true });
+
+  if (validationError) {
+    res.status(406).send('Invalid input data.');
+  }
 
   // Define initial counter values
   let countOfReads = 0;
@@ -304,7 +318,7 @@ async function sendCuteCatsViaEmail(req, res) {
     // Report function execution result and end it
     console.log(`User: ${userId} has been succesfully updated`);
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
-    res.send();
+    res.send(200);
   }
 }
 
