@@ -144,7 +144,7 @@ async function sendCuteCatsViaEmail(req, res) {
                     <p>¡This email was sent to you by someone who wish you the best!<p>
                     {{/if}}
                     <p>Here is your cute cat!.</p>
-                    <img src="data:image/jpeg;base64,{{catImage}}" alt="A cute cat!" width="300" height="200">
+                    <img src="cid:imagename" alt="A cute cat!" width="300" height="200">
                     <p>But not rigth now...</p>
                 </td>
             </tr>
@@ -165,23 +165,10 @@ async function sendCuteCatsViaEmail(req, res) {
 
   bucket = SECRET_BUCKET_NAME;
   fileNameTarget = getRandomFileName();
-  console.log("fileNameTarget:");
-  console.log(fileNameTarget);
-
   [fileData] = await storage.bucket(bucket).file(fileNameTarget).download();
-
-  console.log("fileData is Buffer:");
-  console.log(Buffer.isBuffer(fileData));
-  console.log(fileData);
-  console.log("fileData length:");
-  console.log(fileData.length);
-
   catImage = fileData.toString('base64');
+
   Buffer.toString(fileData);
-  console.log("catImage.length:");
-  console.log(catImage.length);
-  console.log("catImage:");
-  console.log(catImage);
 
   // Compile, add data and render email the template.
   let emailData = {};
@@ -213,8 +200,13 @@ async function sendCuteCatsViaEmail(req, res) {
   const mailOptions = {
     from:     SECRET_EMAIL_USER,
     to:       recipientEmail,
-    subject:  'Cut cats images for you!',
-    text:     'Meow, some test text, how did you find this?',
+    subject:  'Cut cat image for you!',
+    attachments: [{
+      filename: fileNameTarget,
+      content: catImage,
+      cid: 'catImage'
+    }],
+    text:     'Meow, did you find this by accident?',
     html:     emailContent
   }
 
@@ -316,6 +308,7 @@ async function sendCuteCatsViaEmail(req, res) {
   }
 }
 
+// For now the catbase has 1370 cats pictures.
 function getRandomFileName() {
   const min = 0;
   const max = 1369;
