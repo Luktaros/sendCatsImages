@@ -141,11 +141,11 @@ async function sendCuteCatsViaEmail(req, res) {
                     <p>This email was sent to you cortesy of {{senderName}}<p>
                     <p>¡Answer back to him! (¡We dont care about your answer!)<p>
                     {{else}}
-                    <p>¡This email was sent to you by someone who wish you the best!<p>
+                    <p>¡This email was sent to you by someone who wish you a cat image!<p>
                     {{/if}}
-                    <p>Here is your cute cat!.</p>
-                    <img src="cid:imagename" alt="A cute cat!" width="300" height="200">
-                    <p>But not rigth now...</p>
+                    <p>¡Here is your cute cat!.</p>
+                    <img src="cid:catImage" alt="A cute cat!" width="300" height="200">
+                    <p><em>(Warning: Cuteness Levels May Vary)<em></p>
                 </td>
             </tr>
             <tr>
@@ -160,15 +160,11 @@ async function sendCuteCatsViaEmail(req, res) {
   // Get cat image
   let bucket = '';
   let fileNameTarget = '';
-  let fileData = Buffer.alloc(0);
-  let catImage = '';
+  let catImage = Buffer.alloc(0);
 
   bucket = SECRET_BUCKET_NAME;
   fileNameTarget = getRandomFileName();
-  [fileData] = await storage.bucket(bucket).file(fileNameTarget).download();
-  catImage = fileData.toString('base64');
-
-  Buffer.toString(fileData);
+  [catImage] = await storage.bucket(bucket).file(fileNameTarget).download();
 
   // Compile, add data and render email the template.
   let emailData = {};
@@ -195,7 +191,6 @@ async function sendCuteCatsViaEmail(req, res) {
 
   emailContent = compiledEmailTemplate(emailData);
 
-
   // Define email options
   const mailOptions = {
     from:     SECRET_EMAIL_USER,
@@ -208,6 +203,11 @@ async function sendCuteCatsViaEmail(req, res) {
     }],
     text:     'Meow, did you find this by accident?',
     html:     emailContent
+  }
+
+  // Set replyTo
+  if (senderEmail){
+    mailOptions.replyTo = senderEmail;
   }
 
   // Send email and save outcome
