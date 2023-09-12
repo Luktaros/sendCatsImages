@@ -28,19 +28,18 @@ const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
 async function sendCuteCatsViaEmail(req, res) {
   // Validate input
   const schema = joi.object({
-    senderFirstName: joi.string().allow('').alphanum().min(3).max(30),
-    senderLastName: joi.string().allow('').alphanum().min(3).max(30),
+    senderFirstName: joi.string().alphanum().min(3).max(30),
+    senderLastName: joi.string().alphanum().min(3).max(30),
     senderEmail: joi.string().email({ minDomainSegments: 2}).required(),
-    recipientFirstName: joi.string().allow('').alphanum().min(3).max(30),
-    recipientLastName: joi.string().allow('').alphanum().min(3).max(30),
+    recipientFirstName: joi.string().alphanum().min(3).max(30),
+    recipientLastName: joi.string().alphanum().min(3).max(30),
     recipientEmail: joi.string().email({ minDomainSegments: 2}).required(),
   })
 
-  const { validationError } = schema.validate(req.body, { stripUnknown: true });
-
-  if (validationError) {
+  await schema.validateAsync(req.body, { stripUnknown: true }).catch(()=>{
     res.status(406).send('Invalid input data.');
-  }
+  });
+
 
   // Define initial counter values
   let countOfReads = 0;
