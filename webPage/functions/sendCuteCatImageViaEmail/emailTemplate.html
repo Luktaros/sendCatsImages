@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{#if recipientName}}
+    <title>An image of a cute cat for you {{recipientName}}!</title>
+    {{else}}
+    <title>An image of a cute cat for you!</title>
+    {{/if}}
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f0f0f0; text-align: center; padding: 20px;">
+    <table width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+            <td style="background-color: #0073e6; padding: 20px;">
+                {{#if recipientName}}
+                <h1 style="color: #fff;">¡Hello, {{recipientName}}!</h1>
+                {{else}}
+                <h1 style="color: #fff;">¡Hello!</h1>
+                {{/if}}
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 20px;">
+                {{#if senderName}}
+                <p>This email was sent to you cortesy of {{senderName}}<p>
+                <p>¡Answer back to him! (¡We dont care about your answer!)<p>
+                {{else}}
+                <p>¡This email was sent to you by someone who wish you a cat image!<p>
+                {{/if}}
+                <p>¡Here is your cute cat!.</p>
+                <img src="cid:catImage" alt="A cute cat!" width="300" height="200">
+                <p><em>(Warning: Cuteness Levels May Vary)<em></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color: #0073e6; color: #fff; padding: 10px;">
+                <p>&copy; 2023 Lucio Perez</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

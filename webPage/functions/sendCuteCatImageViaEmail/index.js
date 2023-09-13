@@ -4,6 +4,7 @@ import { Storage } from '@google-cloud/storage';
 import { createTransport } from 'nodemailer';
 import { compile } from 'handlebars';
 import { object as joiObject, string as joiString } from 'joi';
+import fs from "fs/promises";
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -26,6 +27,7 @@ const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
  * @param {import('@google-cloud/functions-framework').Response} res
  */
 async function sendCuteCatsViaEmail(req, res) {
+  //TODO: Step 1, validate Input.
   // Validate input
   const schema = joiObject({
     senderFirstName: joiString().alphanum().min(3).max(30),
@@ -80,6 +82,7 @@ async function sendCuteCatsViaEmail(req, res) {
     recipientEmail = req.body.recipientEmail
   }
 
+  // TODO: Step 2: Get Cat Image.
   // Get cat image
   let bucket = '';
   let fileNameTarget = '';
@@ -89,6 +92,7 @@ async function sendCuteCatsViaEmail(req, res) {
   fileNameTarget = getRandomFileName();
   [catImage] = await storage.bucket(bucket).file(fileNameTarget).download();
 
+  // TODO: Step 3: Define email.
   // Define email account
   const transporter = createTransport({
     service: SECRET_EMAIL_SERVICE,
@@ -134,56 +138,17 @@ async function sendCuteCatsViaEmail(req, res) {
     }
   }
 
-  // Define email template
-  let emailTemplate =
-  `<!DOCTYPE html>
-  <html lang="en">
-  <head>
-  <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        {{#if recipientName}}
-        <title>An image of a cute cat for you {{recipientName}}!</title>
-        {{else}}
-        <title>An image of a cute cat for you!</title>
-        {{/if}}
-    </head>
-    <body style="font-family: Arial, sans-serif; background-color: #f0f0f0; text-align: center; padding: 20px;">
-        <table width="100%" cellspacing="0" cellpadding="0" border="0">
-            <tr>
-                <td style="background-color: #0073e6; padding: 20px;">
-                    {{#if recipientName}}
-                    <h1 style="color: #fff;">¡Hello, {{recipientName}}!</h1>
-                    {{else}}
-                    <h1 style="color: #fff;">¡Hello!</h1>
-                    {{/if}}
-                </td>
-            </tr>
-            <tr>
-                <td style="padding: 20px;">
-                    {{#if senderName}}
-                    <p>This email was sent to you cortesy of {{senderName}}<p>
-                    <p>¡Answer back to him! (¡We dont care about your answer!)<p>
-                    {{else}}
-                    <p>¡This email was sent to you by someone who wish you a cat image!<p>
-                    {{/if}}
-                    <p>¡Here is your cute cat!.</p>
-                    <img src="cid:catImage" alt="A cute cat!" width="300" height="200">
-                    <p><em>(Warning: Cuteness Levels May Vary)<em></p>
-                </td>
-            </tr>
-            <tr>
-                <td style="background-color: #0073e6; color: #fff; padding: 10px;">
-                    <p>&copy; 2023 Lucio Perez</p>
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>`;
-
-  // Compile html, add data and render email.
+  // Get and compile html then add data and render email.
   let emailData = {};
   let compiledEmailTemplate;
   let emailContent;
+
+  let emailTemplate = await fs.readFile('./emailTemplate.html', 'utf-8').catch(()=>{
+    res.status(500).send('Html template file missing');
+  });
+
+  console.log('typeof emailTemplate:');
+  console.log(typeof emailTemplate);
 
   compiledEmailTemplate = compile(emailTemplate);
 
@@ -205,6 +170,9 @@ async function sendCuteCatsViaEmail(req, res) {
 
   emailContent = compiledEmailTemplate(emailData);
 
+  console.log('typeof emailContent:');
+  console.log(typeof emailContent);
+
   // Define email options
   const mailOptions = {
     from:     SECRET_EMAIL_USER,
@@ -223,7 +191,7 @@ async function sendCuteCatsViaEmail(req, res) {
   if (senderEmail){
     mailOptions.replyTo = senderEmail;
   }
-
+  // TODO: Step 4, send email
   // Send email and save outcome
   let deliveryReport = '';
   let mailSendSuccessfully = false;
