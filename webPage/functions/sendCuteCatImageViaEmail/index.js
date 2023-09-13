@@ -3,7 +3,7 @@ import functions from '@google-cloud/functions-framework';
 import { Storage } from '@google-cloud/storage';
 import nodemailer from 'nodemailer';
 import handlebars from 'handlebars';
-import joi from 'joi';
+import { object as joiObject, string as joiString } from 'joi';
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -27,13 +27,13 @@ const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
  */
 async function sendCuteCatsViaEmail(req, res) {
   // Validate input
-  const schema = joi.object({
-    senderFirstName: joi.string().alphanum().min(3).max(30),
-    senderLastName: joi.string().alphanum().min(3).max(30),
-    senderEmail: joi.string().email({ minDomainSegments: 2}).required(),
-    recipientFirstName: joi.string().alphanum().min(3).max(30),
-    recipientLastName: joi.string().alphanum().min(3).max(30),
-    recipientEmail: joi.string().email({ minDomainSegments: 2}).required(),
+  const schema = joiObject({
+    senderFirstName: joiString().alphanum().min(3).max(30),
+    senderLastName: joiString().alphanum().min(3).max(30),
+    senderEmail: joiString().email({ minDomainSegments: 2}).required(),
+    recipientFirstName: joiString().alphanum().min(3).max(30),
+    recipientLastName: joiString().alphanum().min(3).max(30),
+    recipientEmail: joiString().email({ minDomainSegments: 2}).required(),
   })
 
   await schema.validateAsync(req.body, { stripUnknown: true }).catch(()=>{
