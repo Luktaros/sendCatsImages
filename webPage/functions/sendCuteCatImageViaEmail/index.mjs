@@ -2,8 +2,8 @@ import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
 import { createTransport } from 'nodemailer';
 import { compile } from 'handlebars';
-
 import { readFile } from "fs/promises";
+import validateUserInput from './validateUserInput.mjs';
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -22,10 +22,14 @@ const SECRET_EMAIL_PASS = process.env.SECRET_EMAIL_PASS;
  * @param {import('@google-cloud/functions-framework').Response} res
  */
 async function sendCuteCatsViaEmail(req, res) {
-  //TODO: Step 1, validate Input.
-  // Validate input
+  //Validate input
+  let cleanUserInput = {};
 
-
+  try {
+    cleanUserInput = validateUserInput(cleanUserInput)
+  } catch (error) {
+    res.status(400).send(error);
+  }
 
   // Define initial counter values
   let countOfReads = 0;
@@ -41,28 +45,28 @@ async function sendCuteCatsViaEmail(req, res) {
   let senderName = '';
   let recipientName = '';
 
-  if (req.body.senderFirstName){
-    senderFirstName = req.body.senderFirstName
+  if (cleanUserInput.senderFirstName){
+    senderFirstName = cleanUserInput.senderFirstName
   }
 
-  if (req.body.senderLastName){
-    senderLastName = req.body.senderLastName
+  if (cleanUserInput.senderLastName){
+    senderLastName = cleanUserInput.senderLastName
   }
 
-  if (req.body.senderEmail){
-    senderEmail = req.body.senderEmail
+  if (cleanUserInput.senderEmail){
+    senderEmail = cleanUserInput.senderEmail
   }
 
-  if (req.body.recipientFirstName){
-    recipientFirstName = req.body.recipientFirstName
+  if (cleanUserInput.recipientFirstName){
+    recipientFirstName = cleanUserInput.recipientFirstName
   }
 
-  if (req.body.recipientLastName){
-    recipientLastName = req.body.recipientLastName
+  if (cleanUserInput.recipientLastName){
+    recipientLastName = cleanUserInput.recipientLastName
   }
 
-  if (req.body.recipientEmail){
-    recipientEmail = req.body.recipientEmail
+  if (cleanUserInput.recipientEmail){
+    recipientEmail = cleanUserInput.recipientEmail
   }
 
   // Get cat image
@@ -70,7 +74,7 @@ async function sendCuteCatsViaEmail(req, res) {
 
   import("./getCatFromStorage.mjs")
     .then( module =>{
-    catImage = module.default();
+    catImage = await module.default();
   }).catch( error =>{
     console.error('Error loading getting function to find cat in storage', error);
   });
