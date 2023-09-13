@@ -1,10 +1,9 @@
 import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
-import { Storage } from '@google-cloud/storage';
 import { createTransport } from 'nodemailer';
 import { compile } from 'handlebars';
-import { object as joiObject, string as joiString } from 'joi';
-import fs from "fs/promises";
+
+import { readFile } from "fs/promises";
 
 // Initialize http function entry point
 functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
@@ -12,14 +11,10 @@ functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 // Initialize firestore client
 const firestore = new Firestore();
 
-// Initialize storage client
-const storage = new Storage();
-
 // Initialize global variables
 const SECRET_EMAIL_SERVICE = process.env.SECRET_EMAIL_SERVICE;
 const SECRET_EMAIL_USER = process.env.SECRET_EMAIL_USER;
 const SECRET_EMAIL_PASS = process.env.SECRET_EMAIL_PASS;
-const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
 
 /**
  * This function sends an email with cute cats pictures
@@ -29,24 +24,12 @@ const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
 async function sendCuteCatsViaEmail(req, res) {
   //TODO: Step 1, validate Input.
   // Validate input
-  const schema = joiObject({
-    senderFirstName: joiString().alphanum().min(3).max(30),
-    senderLastName: joiString().alphanum().min(3).max(30),
-    senderEmail: joiString().email({ minDomainSegments: 2}).required(),
-    recipientFirstName: joiString().alphanum().min(3).max(30),
-    recipientLastName: joiString().alphanum().min(3).max(30),
-    recipientEmail: joiString().email({ minDomainSegments: 2}).required(),
-  })
 
-  await schema.validateAsync(req.body, { stripUnknown: true }).catch(()=>{
-    res.status(406).send('Invalid input data.');
-  });
 
 
   // Define initial counter values
   let countOfReads = 0;
   let countOfWrites = 0;
-
 
   // Check input values
   let senderFirstName = '';
@@ -82,15 +65,15 @@ async function sendCuteCatsViaEmail(req, res) {
     recipientEmail = req.body.recipientEmail
   }
 
-  // TODO: Step 2: Get Cat Image.
   // Get cat image
-  let bucket = '';
-  let fileNameTarget = '';
   let catImage = Buffer.alloc(0);
 
-  bucket = SECRET_BUCKET_NAME;
-  fileNameTarget = getRandomFileName();
-  [catImage] = await storage.bucket(bucket).file(fileNameTarget).download();
+  import("./getCatFromStorage.mjs")
+    .then( module =>{
+    catImage = module.default();
+  }).catch( error =>{
+    console.error('Error loading getting function to find cat in storage', error);
+  });
 
   // TODO: Step 3: Define email.
   // Define email account
@@ -143,7 +126,7 @@ async function sendCuteCatsViaEmail(req, res) {
   let compiledEmailTemplate;
   let emailContent;
 
-  let emailTemplate = await fs.readFile('./emailTemplate.html', 'utf-8').catch(()=>{
+  let emailTemplate = await readFile('./emailTemplate.html', 'utf-8').catch(()=>{
     res.status(500).send('Html template file missing');
   });
 
@@ -288,14 +271,4 @@ async function sendCuteCatsViaEmail(req, res) {
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
     res.send(200);
   }
-}
-
-// For now the catbase has 1370 cats pictures.
-function getRandomFileName() {
-  const min = 0;
-  const max = 1369;
-  const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-  const paddedNumber = randomNumber.toString().padStart(5, '0');
-  const fileName = `${paddedNumber}.jpg`;
-  return fileName;
 }
