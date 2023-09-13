@@ -1,8 +1,8 @@
 import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
 import { Storage } from '@google-cloud/storage';
-import nodemailer from 'nodemailer';
-import handlebars from 'handlebars';
+import { createTransport } from 'nodemailer';
+import { compile } from 'handlebars';
 import { object as joiObject, string as joiString } from 'joi';
 
 // Initialize http function entry point
@@ -45,14 +45,6 @@ async function sendCuteCatsViaEmail(req, res) {
   let countOfReads = 0;
   let countOfWrites = 0;
 
-  // Define email account
-  const transporter = nodemailer.createTransport({
-    service: SECRET_EMAIL_SERVICE,
-    auth:{
-      user: SECRET_EMAIL_USER,
-      pass: SECRET_EMAIL_PASS
-    }
-  })
 
   // Check input values
   let senderFirstName = '';
@@ -87,6 +79,24 @@ async function sendCuteCatsViaEmail(req, res) {
   if (req.body.recipientEmail){
     recipientEmail = req.body.recipientEmail
   }
+
+  // Get cat image
+  let bucket = '';
+  let fileNameTarget = '';
+  let catImage = Buffer.alloc(0);
+
+  bucket = SECRET_BUCKET_NAME;
+  fileNameTarget = getRandomFileName();
+  [catImage] = await storage.bucket(bucket).file(fileNameTarget).download();
+
+  // Define email account
+  const transporter = createTransport({
+    service: SECRET_EMAIL_SERVICE,
+    auth:{
+      user: SECRET_EMAIL_USER,
+      pass: SECRET_EMAIL_PASS
+    }
+  })
 
   // Define sender name for email template
   if (senderFirstName || senderLastName){
@@ -126,10 +136,10 @@ async function sendCuteCatsViaEmail(req, res) {
 
   // Define email template
   let emailTemplate =
-    `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
+  `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {{#if recipientName}}
         <title>An image of a cute cat for you {{recipientName}}!</title>
@@ -170,21 +180,12 @@ async function sendCuteCatsViaEmail(req, res) {
     </body>
     </html>`;
 
-  // Get cat image
-  let bucket = '';
-  let fileNameTarget = '';
-  let catImage = Buffer.alloc(0);
-
-  bucket = SECRET_BUCKET_NAME;
-  fileNameTarget = getRandomFileName();
-  [catImage] = await storage.bucket(bucket).file(fileNameTarget).download();
-
-  // Compile, add data and render email the template.
+  // Compile html, add data and render email.
   let emailData = {};
   let compiledEmailTemplate;
   let emailContent;
 
-  compiledEmailTemplate = handlebars.compile(emailTemplate);
+  compiledEmailTemplate = compile(emailTemplate);
 
   emailData.senderName = '';
   emailData.recipientName = '';
