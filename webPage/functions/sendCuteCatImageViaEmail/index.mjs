@@ -12,9 +12,25 @@ functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 const firestore = new Firestore();
 
 // Initialize global variables
-const SECRET_EMAIL_SERVICE = process.env.SECRET_EMAIL_SERVICE;
-const SECRET_EMAIL_USER = process.env.SECRET_EMAIL_USER;
-const SECRET_EMAIL_PASS = process.env.SECRET_EMAIL_PASS;
+let secretEmailService = '';
+let secretEmailUser = '';
+let secretEmailPass = '';
+
+if (process.env.SECRET_EMAIL_SERVICE){
+  secretEmailService = process.env.SECRET_EMAIL_SERVICE;
+}
+
+if (process.env.SECRET_EMAIL_USER){
+  secretEmailUser = process.env.SECRET_EMAIL_USER;
+}
+
+if (process.env.SECRET_EMAIL_PASS){
+  secretEmailPass = process.env.SECRET_EMAIL_PASS;
+}
+
+if (!secretEmailService || !secretEmailUser || !secretEmailPass){
+  throw new Error ('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS');
+}
 
 /**
  * This function sends an email with cute cats pictures
@@ -72,20 +88,20 @@ async function sendCuteCatsViaEmail(req, res) {
   // Get cat image
   let catImage = Buffer.alloc(0);
 
-  import("./getCatFromStorage.mjs")
+  await import("./getCatFromStorage.mjs")
     .then( module =>{
-    catImage = await module.default();
+    catImage = module.default();
   }).catch( error =>{
-    console.error('Error loading getting function to find cat in storage', error);
+    console.error('Error getting and image of a cat', error);
+    res.status(500).send();
   });
 
-  // TODO: Step 3: Define email.
   // Define email account
   const transporter = createTransport({
-    service: SECRET_EMAIL_SERVICE,
+    service: secretEmailService,
     auth:{
-      user: SECRET_EMAIL_USER,
-      pass: SECRET_EMAIL_PASS
+      user: secretEmailUser,
+      pass: secretEmailPass
     }
   })
 
@@ -134,6 +150,7 @@ async function sendCuteCatsViaEmail(req, res) {
     res.status(500).send('Html template file missing');
   });
 
+  // TODO: Delete this
   console.log('typeof emailTemplate:');
   console.log(typeof emailTemplate);
 
@@ -157,12 +174,13 @@ async function sendCuteCatsViaEmail(req, res) {
 
   emailContent = compiledEmailTemplate(emailData);
 
+  // TODO: Delete this
   console.log('typeof emailContent:');
   console.log(typeof emailContent);
 
   // Define email options
   const mailOptions = {
-    from:     SECRET_EMAIL_USER,
+    from:     secretEmailUser,
     to:       recipientEmail,
     subject:  'Cut cat image for you!',
     attachments: [{
@@ -178,7 +196,7 @@ async function sendCuteCatsViaEmail(req, res) {
   if (senderEmail){
     mailOptions.replyTo = senderEmail;
   }
-  // TODO: Step 4, send email
+
   // Send email and save outcome
   let deliveryReport = '';
   let mailSendSuccessfully = false;
@@ -193,7 +211,8 @@ async function sendCuteCatsViaEmail(req, res) {
     console.error('Error sending email with cats:', error);
   });
 
-  // Generate email record
+
+  // TODO: Generate email record
   const emailRecord = {};
   let dateNow = new Date();
 

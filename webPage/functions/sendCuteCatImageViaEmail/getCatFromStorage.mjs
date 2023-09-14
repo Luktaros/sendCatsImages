@@ -2,10 +2,14 @@ import { Storage } from '@google-cloud/storage';
 
 // Initialize global variable
 // For now the catbase has 1370 cats pictures.
-const SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME;
-
-
 const CATS_IN_CATBASE = 1370;
+let SECRET_BUCKET_NAME = "";
+
+if (process.env.SECRET_BUCKET_NAME){
+ SECRET_BUCKET_NAME = process.env.SECRET_BUCKET_NAME
+} else {
+  throw new Error ('Missing bucket name/direction secret');
+}
 
 // Initialize storage client
 const storage = new Storage();
@@ -13,18 +17,14 @@ const storage = new Storage();
 /**
  * Get a cat from Google Storage
  * @returns  { Buffer } { Buffer } A cat image
- * @throws { Object } Error
+ * @throws { Error }
  */
 async function getCatFromStorage(){
-  // Get a cat
-  let bucket = '';
+  // Get a cat image file
+  let bucket = SECRET_BUCKET_NAME;
   let fileNameTarget = generateRandomFileName();
-  let result;
   let somethingHappened = false;
-
-  if (SECRET_BUCKET_NAME){
-    bucket = SECRET_BUCKET_NAME;
-  }
+  let result;
 
   await storage.bucket(bucket).file(fileNameTarget).download()
   .then( fetchCatImage =>{
