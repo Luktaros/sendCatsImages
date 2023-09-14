@@ -16,29 +16,20 @@ const storage = new Storage();
 
 /**
  * Get a cat from Google Storage
- * @returns  { Buffer } { Buffer } A cat image
- * @throws { Error }
+ * @returns { Promise } { Array } Where element 0 its an cat image { Buffer }, and element 1 its the file name { String }
+ * @throw { Error }
  */
 async function getCatFromStorage(){
   // Get a cat image file
   let bucket = SECRET_BUCKET_NAME;
   let fileNameTarget = generateRandomFileName();
-  let somethingHappened = false;
-  let result;
+  let catImage = Buffer.alloc(0);
 
-  await storage.bucket(bucket).file(fileNameTarget).download()
-  .then( fetchCatImage =>{
-    [result] = fetchCatImage;
-  }).catch( error =>{
-    somethingHappened = true;
-    result = error;
-  });
-
-  if (somethingHappened){
-    throw new Error (result);
+  try {
+    return [catImage, fileNameTarget] = await storage.bucket(bucket).file(fileNameTarget).download();
+  } catch (error) {
+    throw new Error (error);
   }
-
-  return result;
 }
 
 function generateRandomFileName() {

@@ -1,4 +1,4 @@
-import { object, string } from 'joi';
+import joi from 'joi';
 
 /**
  * Evaluate user input within req.body.
@@ -9,18 +9,22 @@ import { object, string } from 'joi';
  * @throws { String } A string with detailed errors from request body.
  */
 function validateUserInput(reqBody){
+  if (!reqBody){
+    throw new Error ('Missing reqBody parameter to sanitize');
+  }
+
   let operationResult;
 
-  const schema = object({
-    senderFirstName: string().alphanum().min(3).max(30),
-    senderLastName: string().alphanum().min(3).max(30),
-    senderEmail: string().email({ minDomainSegments: 2}).required(),
-    recipientFirstName: string().alphanum().min(3).max(30),
-    recipientLastName: string().alphanum().min(3).max(30),
-    recipientEmail: string().email({ minDomainSegments: 2}).required(),
+  const schema = joi.object({
+    senderFirstName: joi.string().alphanum().min(3).max(30),
+    senderLastName: joi.string().alphanum().min(3).max(30),
+    senderEmail: joi.string().email({ minDomainSegments: 2}).required(),
+    recipientFirstName: joi.string().alphanum().min(3).max(30),
+    recipientLastName: joi.string().alphanum().min(3).max(30),
+    recipientEmail: joi.string().email({ minDomainSegments: 2}).required(),
   })
 
-  operationResult = schema.validate(req.body, { stripUnknown: true });
+  operationResult = schema.validate(reqBody, { stripUnknown: true });
 
   if (operationResult.error){
     throw operationResult.error.annotate();

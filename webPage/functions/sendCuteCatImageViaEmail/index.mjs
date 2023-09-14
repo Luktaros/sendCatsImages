@@ -1,7 +1,7 @@
 import { Firestore } from '@google-cloud/firestore';
 import functions from '@google-cloud/functions-framework';
 import { createTransport } from 'nodemailer';
-import { compile } from 'handlebars';
+import handlebars from 'handlebars';
 import { readFile } from "fs/promises";
 import validateUserInput from './validateUserInput.mjs';
 
@@ -11,7 +11,7 @@ functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 // Initialize firestore client
 const firestore = new Firestore();
 
-// Initialize global variables
+// Check and initialize global variables
 let secretEmailService = '';
 let secretEmailUser = '';
 let secretEmailPass = '';
@@ -42,7 +42,7 @@ async function sendCuteCatsViaEmail(req, res) {
   let cleanUserInput = {};
 
   try {
-    cleanUserInput = validateUserInput(cleanUserInput)
+    cleanUserInput = validateUserInput(req.body)
   } catch (error) {
     res.status(400).send(error);
   }
@@ -85,16 +85,17 @@ async function sendCuteCatsViaEmail(req, res) {
     recipientEmail = cleanUserInput.recipientEmail
   }
 
-  // Get cat image
+  // Get cat image and fileName
   let catImage = Buffer.alloc(0);
+  let catFileName = '';
 
   await import("./getCatFromStorage.mjs")
-    .then( module =>{
-    catImage = module.default();
-  }).catch( error =>{
+  .then( async module =>{
+    [catImage, catFileName] = await module.default();
+  }).catch( error => {
     console.error('Error getting and image of a cat', error);
-    res.status(500).send();
-  });
+    res.status(500).send('Error getting and image of a cat');
+  })
 
   // Define email account
   const transporter = createTransport({
@@ -143,18 +144,15 @@ async function sendCuteCatsViaEmail(req, res) {
 
   // Get and compile html then add data and render email.
   let emailData = {};
-  let compiledEmailTemplate;
-  let emailContent;
+  let compiledEmailTemplate = '';
+  let emailContent = '';
 
-  let emailTemplate = await readFile('./emailTemplate.html', 'utf-8').catch(()=>{
+  let emailTemplate = await readFile('./emailTemplate.html', 'utf-8').catch((error)=>{
+    console.error('Html template file missing', error);
     res.status(500).send('Html template file missing');
   });
 
-  // TODO: Delete this
-  console.log('typeof emailTemplate:');
-  console.log(typeof emailTemplate);
-
-  compiledEmailTemplate = compile(emailTemplate);
+  compiledEmailTemplate = handlebars.compile(emailTemplate);
 
   emailData.senderName = '';
   emailData.recipientName = '';
@@ -174,17 +172,13 @@ async function sendCuteCatsViaEmail(req, res) {
 
   emailContent = compiledEmailTemplate(emailData);
 
-  // TODO: Delete this
-  console.log('typeof emailContent:');
-  console.log(typeof emailContent);
-
   // Define email options
   const mailOptions = {
     from:     secretEmailUser,
     to:       recipientEmail,
     subject:  'Cut cat image for you!',
     attachments: [{
-      filename: fileNameTarget,
+      filename: catFileName,
       content: catImage,
       cid: 'catImage'
     }],
@@ -212,7 +206,7 @@ async function sendCuteCatsViaEmail(req, res) {
   });
 
 
-  // TODO: Generate email record
+  // Generate email record
   const emailRecord = {};
   let dateNow = new Date();
 
@@ -260,7 +254,7 @@ async function sendCuteCatsViaEmail(req, res) {
     // Report function execution result and end it
     console.log(`The user with ID ${docIdOfNewUser} has been successfully created, and the email record has been saved.`);
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
-    res.send();
+    res.sendStatus(200);
 
   } else {
     // If user profile is found, update it with lastest values and register email record
@@ -292,6 +286,6 @@ async function sendCuteCatsViaEmail(req, res) {
     // Report function execution result and end it
     console.log(`User: ${userId} has been succesfully updated`);
     console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
-    res.send(200);
+    res.sendStatus(200);
   }
 }
