@@ -14,7 +14,7 @@ const storage = new Storage();
 */
 async function getCatFromStorage(){
   // Get a cat image file
-  let bucket = SECRET_BUCKET_NAME;
+  let bucket = '';
   let fileNameTarget = generateRandomFileName();
   let catImage = Buffer.alloc(0);
 
@@ -24,6 +24,7 @@ async function getCatFromStorage(){
     throw new Error ('Missing bucket name/direction secret');
   }
 
+  // TODO: Fix here, fileNameTarget doesn't get pass to the return value
   try {
     return [catImage, fileNameTarget] = await storage.bucket(bucket).file(fileNameTarget).download();
   } catch (error) {

@@ -185,6 +185,9 @@ async function sendCuteCatsViaEmail(req, res) {
 
   emailContent = compiledEmailTemplate(emailData);
 
+  console.log('catFileName:');
+  console.log(catFileName);
+
   // Define email options
   const mailOptions = {
     from:     secretEmailUser,
@@ -235,7 +238,7 @@ async function sendCuteCatsViaEmail(req, res) {
 
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
-  const queryUserCollectionRef = {};
+  let queryUserCollectionRef = {};
 
   try {
     queryUserCollectionRef = await usersCollectionRef.where('email', '==', senderEmail).get();
@@ -310,7 +313,7 @@ async function sendCuteCatsViaEmail(req, res) {
       console.log(`User: ${userId} has been succesfully updated`);
     } catch (error) {
       operationEndStatus = 500;
-      console.warn(`Unable to update user: ${userId} with email record`);
+      console.warn(`Unable to update user: ${userId} with email record`, error);
     }
   }
 
