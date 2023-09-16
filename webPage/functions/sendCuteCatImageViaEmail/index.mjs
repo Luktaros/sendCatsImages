@@ -25,7 +25,8 @@ async function sendCuteCatsViaEmail(req, res) {
   } catch (error) {
     // TODO: Indicate to user and system what when wrong exactly.
     console.error('Invalid user input data', error);
-    res.status(400).send('Invalid user input data');
+    res.sendStatus(400);
+    throw new Error ('Invalid user input data');
   }
 
   // Set initial counter values
@@ -72,10 +73,13 @@ async function sendCuteCatsViaEmail(req, res) {
 
   try {
     const getCatFromStorage = await import("./getCatFromStorage.mjs");
-    [catImage, catFileName] = await getCatFromStorage.default();
+    const results = await getCatFromStorage.default();
+    catImage = results[0];
+    catFileName = results[1];
   } catch (error) {
     console.error('Error getting and image of a cat', error);
-    res.status(500).send('Error getting and image of a cat');
+    res.sendStatus(400);
+    throw new Error('Error getting and image of a cat');
   }
 
   // Get email user and pass to send email
@@ -97,8 +101,9 @@ async function sendCuteCatsViaEmail(req, res) {
 
   if (!secretEmailService || !secretEmailUser || !secretEmailPass){
     // TODO: Indicate exactly to the server what is missing;
-    console.error('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS')
-    res.status(500).send();
+    console.error('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS');
+    res.sendStatus(500);
+    throw new Error ('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS');
   }
 
   // Define email account
@@ -157,6 +162,7 @@ async function sendCuteCatsViaEmail(req, res) {
   } catch (error) {
     console.error('Html template file missing', error);
     res.status(500).send('Html template file missing');
+    throw new Error('Html template file missing');
   }
 
   compiledEmailTemplate = handlebars.compile(emailTemplate);
@@ -311,4 +317,5 @@ async function sendCuteCatsViaEmail(req, res) {
   // Report function execution result and end it
   console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
   res.sendStatus(operationEndStatus);
+  return;
 }
