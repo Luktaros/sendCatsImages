@@ -95,9 +95,8 @@ async function sendCuteCatsViaEmail(req, res) {
     secretEmailPass = process.env.SECRET_EMAIL_PASS;
   }
 
-  // TODO: Indicate exactly to the server what is missing;
-
   if (!secretEmailService || !secretEmailUser || !secretEmailPass){
+    // TODO: Indicate exactly to the server what is missing;
     console.error('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS')
     res.status(500).send();
   }
@@ -176,7 +175,7 @@ async function sendCuteCatsViaEmail(req, res) {
 
   if (catImage){
     emailData.catImage = catImage;
-  }
+  }'Invalid user input data'
 
   emailContent = compiledEmailTemplate(emailData);
 
@@ -231,6 +230,7 @@ async function sendCuteCatsViaEmail(req, res) {
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
   const queryUserCollectionRef = {};
+
   try {
     queryUserCollectionRef = await usersCollectionRef.where('email', '==', senderEmail).get();
     countOfReads++;
@@ -264,8 +264,8 @@ async function sendCuteCatsViaEmail(req, res) {
 
     try {
       writeResult = await firestore.collection('users').add(newUser);
-      docIdOfNewUser = writeResult.id;
       countOfWrites++;
+      docIdOfNewUser = writeResult.id;
       operationEndStatus = 200;
       console.log(`The user with ID ${docIdOfNewUser} has been successfully created, and the email record has been saved.`);
     } catch (error) {
