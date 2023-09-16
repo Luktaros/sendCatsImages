@@ -14,9 +14,9 @@ const storage = new Storage();
 */
 async function getCatFromStorage(){
   // Get a cat image file
+  const processResult = [];
   let bucket = '';
   let fileNameTarget = generateRandomFileName();
-  let catImage = Buffer.alloc(0);
 
   if (process.env.SECRET_BUCKET_NAME){
    bucket = process.env.SECRET_BUCKET_NAME
@@ -26,7 +26,11 @@ async function getCatFromStorage(){
 
   // TODO: Fix here, fileNameTarget doesn't get pass to the return value
   try {
-    return [catImage, fileNameTarget] = await storage.bucket(bucket).file(fileNameTarget).download();
+    const downloadResponse = await storage.bucket(bucket).file(fileNameTarget).download();
+    processResult[0] = downloadResponse[0];
+    processResult[1] = fileNameTarget;
+
+    return processResult;
   } catch (error) {
     throw new Error (error);
   }
