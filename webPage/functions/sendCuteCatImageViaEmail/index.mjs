@@ -11,32 +11,11 @@ functions.http('sendCuteCatsViaEmail', sendCuteCatsViaEmail);
 // Initialize firestore client
 const firestore = new Firestore();
 
-// Check and initialize global variables
-let secretEmailService = '';
-let secretEmailUser = '';
-let secretEmailPass = '';
-
-if (process.env.SECRET_EMAIL_SERVICE){
-  secretEmailService = process.env.SECRET_EMAIL_SERVICE;
-}
-
-if (process.env.SECRET_EMAIL_USER){
-  secretEmailUser = process.env.SECRET_EMAIL_USER;
-}
-
-if (process.env.SECRET_EMAIL_PASS){
-  secretEmailPass = process.env.SECRET_EMAIL_PASS;
-}
-
-if (!secretEmailService || !secretEmailUser || !secretEmailPass){
-  throw new Error ('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS');
-}
-
 /**
  * This function sends an email with cute cats pictures
  * @param {import('@google-cloud/functions-framework').Request} req
  * @param {import('@google-cloud/functions-framework').Response} res
- */
+*/
 async function sendCuteCatsViaEmail(req, res) {
   //Validate input
   let cleanUserInput = {};
@@ -44,14 +23,16 @@ async function sendCuteCatsViaEmail(req, res) {
   try {
     cleanUserInput = validateUserInput(req.body)
   } catch (error) {
-    res.status(400).send(error);
+    // TODO: Indicate to user and system what when wrong exactly.
+    console.error('Invalid user input data', error);
+    res.status(400).send('Invalid user input data');
   }
 
-  // Define initial counter values
+  // Set initial counter values
   let countOfReads = 0;
   let countOfWrites = 0;
 
-  // Check input values
+  // Get input values
   let senderFirstName = '';
   let senderLastName = '';
   let senderEmail = '';
@@ -89,13 +70,37 @@ async function sendCuteCatsViaEmail(req, res) {
   let catImage = Buffer.alloc(0);
   let catFileName = '';
 
-  await import("./getCatFromStorage.mjs")
-  .then( async module =>{
-    [catImage, catFileName] = await module.default();
-  }).catch( error => {
+  try {
+    const getCatFromStorage = await import("./getCatFromStorage.mjs");
+    [catImage, catFileName] = await getCatFromStorage.default();
+  } catch (error) {
     console.error('Error getting and image of a cat', error);
     res.status(500).send('Error getting and image of a cat');
-  })
+  }
+
+  // Get email user and pass to send email
+  let secretEmailService = '';
+  let secretEmailUser = '';
+  let secretEmailPass = '';
+
+  if (process.env.SECRET_EMAIL_SERVICE){
+    secretEmailService = process.env.SECRET_EMAIL_SERVICE;
+  }
+
+  if (process.env.SECRET_EMAIL_USER){
+    secretEmailUser = process.env.SECRET_EMAIL_USER;
+  }
+
+  if (process.env.SECRET_EMAIL_PASS){
+    secretEmailPass = process.env.SECRET_EMAIL_PASS;
+  }
+
+  // TODO: Indicate exactly to the server what is missing;
+
+  if (!secretEmailService || !secretEmailUser || !secretEmailPass){
+    console.error('Missing one or more of the required secrets: SECRET_EMAIL_SERVICE, SECRET_EMAIL_USER, SECRET_EMAIL_PASS')
+    res.status(500).send();
+  }
 
   // Define email account
   const transporter = createTransport({
@@ -146,11 +151,14 @@ async function sendCuteCatsViaEmail(req, res) {
   let emailData = {};
   let compiledEmailTemplate = '';
   let emailContent = '';
+  let emailTemplate = '';
 
-  let emailTemplate = await readFile('./emailTemplate.html', 'utf-8').catch((error)=>{
+  try {
+    emailTemplate = await readFile('./emailTemplate.html', 'utf-8');
+  } catch (error) {
     console.error('Html template file missing', error);
     res.status(500).send('Html template file missing');
-  });
+  }
 
   compiledEmailTemplate = handlebars.compile(emailTemplate);
 
@@ -194,17 +202,17 @@ async function sendCuteCatsViaEmail(req, res) {
   // Send email and save outcome
   let deliveryReport = '';
   let mailSendSuccessfully = false;
+  let sendMailResult;
 
-  await transporter.sendMail(mailOptions).then(result =>{
-    deliveryReport = result;
+  try {
+    deliveryReport = await transporter.sendMail(mailOptions);
     mailSendSuccessfully = true;
     console.log('Email with cats sent successfully:', deliveryReport);
-  }).catch(error => {
+  } catch (error) {
     deliveryReport = error;
     mailSendSuccessfully = false;
-    console.error('Error sending email with cats:', error);
-  });
-
+    console.warn('Error sending email with cats:', error);
+  }
 
   // Generate email record
   const emailRecord = {};
@@ -222,8 +230,16 @@ async function sendCuteCatsViaEmail(req, res) {
 
   // Find the appropriate user profile to store the record on.
   const usersCollectionRef = firestore.collection('users');
-  const queryUserCollectionRef = await usersCollectionRef.where('email', '==', senderEmail).get();
-  countOfReads++;
+  const queryUserCollectionRef = {};
+  try {
+    queryUserCollectionRef = await usersCollectionRef.where('email', '==', senderEmail).get();
+    countOfReads++;
+  } catch (error) {
+    console.error('Unable to find appropiate user profile to store the record on', error);
+  }
+
+  let writeResult;
+  let operationEndStatus = 0;
 
   if (queryUserCollectionRef.empty){
     // If no user profile is found, create a new one and save the record.
@@ -246,15 +262,16 @@ async function sendCuteCatsViaEmail(req, res) {
 
     newUser.listOfEmailSents.push(emailRecord);
 
-    await firestore.collection('users').add(newUser).then(docId => {
-      docIdOfNewUser = docId.id;
-    });
-    countOfWrites++;
-
-    // Report function execution result and end it
-    console.log(`The user with ID ${docIdOfNewUser} has been successfully created, and the email record has been saved.`);
-    console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
-    res.sendStatus(200);
+    try {
+      writeResult = await firestore.collection('users').add(newUser);
+      docIdOfNewUser = writeResult.id;
+      countOfWrites++;
+      operationEndStatus = 200;
+      console.log(`The user with ID ${docIdOfNewUser} has been successfully created, and the email record has been saved.`);
+    } catch (error) {
+      operationEndStatus = 500;
+      console.warn('Unable to create a new user with corresponding record', error);
+    }
 
   } else {
     // If user profile is found, update it with lastest values and register email record
@@ -280,12 +297,18 @@ async function sendCuteCatsViaEmail(req, res) {
       updateForUser.lastUsedLastName = senderLastName;
     }
 
-    await firestore.collection('users').doc(userId).update(updateForUser);
-    countOfWrites++;
-
-    // Report function execution result and end it
-    console.log(`User: ${userId} has been succesfully updated`);
-    console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
-    res.sendStatus(200);
+    try {
+      writeResult = await firestore.collection('users').doc(userId).update(updateForUser);
+      countOfWrites++;
+      operationEndStatus = 200;
+      console.log(`User: ${userId} has been succesfully updated`);
+    } catch (error) {
+      operationEndStatus = 500;
+      console.warn(`Unable to update user: ${userId} with email record`);
+    }
   }
+
+  // Report function execution result and end it
+  console.log(`Count of reads: ${countOfReads}, count of writes: ${countOfWrites}`);
+  res.sendStatus(operationEndStatus);
 }
