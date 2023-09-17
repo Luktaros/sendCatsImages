@@ -24,7 +24,6 @@ async function getCatFromStorage(){
     throw new Error ('Missing bucket name/direction secret');
   }
 
-  // TODO: Fix here, fileNameTarget doesn't get pass to the return value
   try {
     const downloadResponse = await storage.bucket(bucket).file(fileNameTarget).download();
     processResult[0] = downloadResponse[0];

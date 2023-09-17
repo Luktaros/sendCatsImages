@@ -23,7 +23,7 @@ async function sendCuteCatsViaEmail(req, res) {
   try {
     cleanUserInput = validateUserInput(req.body)
   } catch (error) {
-    // TODO: Indicate to user and system what when wrong exactly.
+    // TODO: Indicate to user what when wrong.
     console.error('Invalid user input data', error);
     res.sendStatus(400);
     throw new Error ('Invalid user input data');

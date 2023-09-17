@@ -16,11 +16,11 @@ function validateUserInput(reqBody){
   let operationResult;
 
   const schema = joi.object({
-    senderFirstName: joi.string().alphanum().min(3).max(30),
-    senderLastName: joi.string().alphanum().min(3).max(30),
+    senderFirstName: joi.string().allow("").alphanum().min(3).max(30),
+    senderLastName: joi.string().allow("").alphanum().min(3).max(30),
     senderEmail: joi.string().email({ minDomainSegments: 2}).required(),
-    recipientFirstName: joi.string().alphanum().min(3).max(30),
-    recipientLastName: joi.string().alphanum().min(3).max(30),
+    recipientFirstName: joi.string().allow("").alphanum().min(3).max(30),
+    recipientLastName: joi.string().allow("").alphanum().min(3).max(30),
     recipientEmail: joi.string().email({ minDomainSegments: 2}).required(),
   })
 
