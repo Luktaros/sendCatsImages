@@ -8,6 +8,12 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(express.static('public'));
 
+// TODO: Analyze the need for an Global error handler
+app.use((error, req, res, next)=>{
+  console.error('An error ocurred', error);
+  res.status(500).send('Something when wrong')
+})
+
 app.post('/submit', async (req, res) =>{
   // Execute GCloud Function with request data
   try {
