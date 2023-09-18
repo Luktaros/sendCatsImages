@@ -27,7 +27,7 @@ function validateUserInput(reqBody){
   operationResult = schema.validate(reqBody, { stripUnknown: true });
 
   if (operationResult.error){
-    throw operationResult.error.annotate();
+    throw operationResult.error.details;
   }
 
   return operationResult.value;

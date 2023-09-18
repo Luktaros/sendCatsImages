@@ -23,10 +23,10 @@ async function sendCuteCatsViaEmail(req, res) {
   try {
     cleanUserInput = validateUserInput(req.body)
   } catch (error) {
-    // TODO: Indicate to user what when wrong.
-    console.error('Invalid user input data', error);
-    res.sendStatus(400);
-    throw new Error ('Invalid user input data');
+    // TODO: Indicate to user what when wrong. Fix error message.
+    const cleanError = JSON.stringify(error, undefined, 2);
+    console.error('Invalid user input data', cleanError);
+    throw res.status(400).send(cleanError);
   }
 
   // Set initial counter values
@@ -79,7 +79,7 @@ async function sendCuteCatsViaEmail(req, res) {
   } catch (error) {
     console.error('Error getting and image of a cat', error);
     res.sendStatus(400);
-    throw new Error('Error getting and image of a cat');
+    throw error;
   }
 
   // Get email user and pass to send email
