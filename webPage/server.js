@@ -15,7 +15,14 @@ app.post('/submit', async (req, res) =>{
     await axios.post(gcfUrl, req.body);
     return res.redirect('/');
   } catch (error) {
-    console.error('next, what when wrong', error);
+    // Check for debug data
+    if (error.response){
+      if (error.response.data){
+        error = error.response.data;
+      }
+    }
+
+    console.error('Something went wrong: ', error);
     return res.status(400).send('Something went wrong');
   }
 })

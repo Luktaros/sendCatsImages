@@ -23,10 +23,7 @@ async function sendCuteCatsViaEmail(req, res) {
   try {
     cleanUserInput = validateUserInput(req.body)
   } catch (error) {
-    // TODO: Indicate to user what when wrong. Fix error message.
-    const cleanError = JSON.stringify(error, undefined, 2);
-    console.error('Invalid user input data', cleanError);
-    throw res.status(400).send(cleanError);
+    throw res.status(400).send(error);
   }
 
   // Set initial counter values
